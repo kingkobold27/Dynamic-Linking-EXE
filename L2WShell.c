@@ -6,7 +6,7 @@
 #define MAX_LINE 1024
 #define MAX_ARGS 16
 
-typedef int (__stdcall *ParseCommandFn)(char *, char *[], int);
+typedef int (__cdecl *ParseCommandFn)(char *, char *[], int);
 typedef int (__stdcall *ExecuteCommandFn)(const char *, const char *const [], int);
 
 typedef struct {
@@ -111,7 +111,7 @@ int main(void)
         fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
         return 1;
     }
-    parse = (ParseCommandFn)GetProcAddress(dll, "ParseCmd");
+    parse = (ParseCommandFn)GetProcAddress(dll, "_ParseCmd@12");
     execute = (ExecuteCommandFn)GetProcAddress(dll, "_ExecuteCommand@12");
     if (!parse || !execute) {
         fprintf(stderr, "Missing required DLL export.\n");
