@@ -106,12 +106,12 @@ int main(void)
     char *args[MAX_ARGS];
     int argc;
 
-    dll = LoadLibraryA("C:\\Users\\Student\\source\\repos\\Project2\\Debug\\Project2.dll");
+    dll = LoadLibraryA("C:\\Users\\Student\\source\\repos\\Project3\\Debug\\Project3.dll");
     if (!dll) {
         fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
         return 1;
     }
-    parse = (ParseCommandFn)GetProcAddress(dll, "_ParseCommand@12");
+    parse = (ParseCommandFn)GetProcAddress(dll, "ParseCmd");
     execute = (ExecuteCommandFn)GetProcAddress(dll, "_ExecuteCommand@12");
     if (!parse || !execute) {
         fprintf(stderr, "Missing required DLL export.\n");
