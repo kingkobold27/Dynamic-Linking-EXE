@@ -2,9 +2,9 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
-#include <wincrypt.h>
-#include <bcrypt.h>
 #include <stdlib.h>
+#include <softpub.h>
+#include <wintrust.h>
 
 
 
@@ -109,97 +109,42 @@ static int dispatch(char *args[], int argc, ExecuteCommandFn execute)
 
 int verify_signature(const wchar_t* dll_path)
 {
-    HCRYPTPROV hCryptProv = 0;
-    HCRYPTHASH hCryptHash = 0;
-    HANDLE hFile = INVALID_HANDLE_VALUE;
-    DWORD dwFileSize = 0;
-    DWORD dwBytesRead = 0;
-    BYTE* pBuffer = NULL;
-    BYTE hash_value[32];
-    DWORD hash_size = sizeof(hash_value);
+    WINTRUST_FILE_INFO fileInfo;
+    WINTRUST_DATA trustData;
+    GUID policyGUID = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+    LONG status;
 
-    // Open the file
-    hFile = CreateFileW(dll_path, GENERIC_READ, FILE_SHARE_READ, NULL,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE)
-        return 0;
+    memset(&fileInfo, 0, sizeof(fileInfo));
+    fileInfo.cbStruct = sizeof(fileInfo);
+    fileInfo.pcwszFilePath = dll_path;
 
-    // Get file size
-    dwFileSize = GetFileSize(hFile, NULL);
-    if (dwFileSize == INVALID_FILE_SIZE)
+    memset(&trustData, 0, sizeof(trustData));
+    trustData.cbStruct = sizeof(trustData);
+    trustData.dwUIChoice = WTD_UI_NONE;
+    trustData.fdwRevocationChecks = WTD_REVOKE_NONE;
+    trustData.dwUnionChoice = WTD_CHOICE_FILE;
+    trustData.dwStateAction = WTD_STATEACTION_VERIFY;
+    trustData.pFile = &fileInfo;
+
+    status = WinVerifyTrust(
+        NULL,
+        &policyGUID,
+        &trustData
+    );
+
+    trustData.dwStateAction = WTD_STATEACTION_CLOSE;
+    WinVerifyTrust(NULL, &policyGUID, &trustData);
+
+    if (status == ERROR_SUCCESS)
     {
-        CloseHandle(hFile);
-        return 0;
+        printf("DLL signature is VALID and trusted.\n");
+        return 1;
     }
 
-    // Allocate buffer
-    pBuffer = (BYTE*)malloc(dwFileSize);
-    if (!pBuffer)
-    {
-        CloseHandle(hFile);
-        return 0;
-    }
+    printf("DLL signature verification FAILED. Error: 0x%08lX\n",
+        (unsigned long)status);
 
-    // Read file
-    if (!ReadFile(hFile, pBuffer, dwFileSize, &dwBytesRead, NULL))
-    {
-        free(pBuffer);
-        CloseHandle(hFile);
-        return 0;
-    }
-
-    // Initialize crypto provider
-    if (!CryptAcquireContextW(&hCryptProv, NULL, NULL,
-        PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
-    {
-        free(pBuffer);
-        CloseHandle(hFile);
-        return 0;
-    }
-
-    // Create hash object
-    if (!CryptCreateHash(hCryptProv, 0x0000800c, 0, 0, &hCryptHash))
-    {
-        CryptReleaseContext(hCryptProv, 0);
-        free(pBuffer);
-        CloseHandle(hFile);
-        return 0;
-    }
-
-    // Hash file
-    if (!CryptHashData(hCryptHash, pBuffer, dwFileSize, 0))
-    {
-        CryptDestroyHash(hCryptHash);
-        CryptReleaseContext(hCryptProv, 0);
-        free(pBuffer);
-        CloseHandle(hFile);
-        return 0;
-    }
-
-    // Get hash value
-    if (!CryptGetHashParam(hCryptHash, HP_HASHVAL, hash_value, &hash_size, 0))
-    {
-        CryptDestroyHash(hCryptHash);
-        CryptReleaseContext(hCryptProv, 0);
-        free(pBuffer);
-        CloseHandle(hFile);
-        return 0;
-    }
-
-    // Verify signature (replace with actual signature verification logic)
-    // For demonstration, we'll just print the hash
-    printf("File hash: ");
-    for (DWORD i = 0; i < hash_size; i++)
-        printf("%02x", hash_value[i]);
-    printf("\n");
-
-    // Clean up
-    CryptDestroyHash(hCryptHash);
-    CryptReleaseContext(hCryptProv, 0);
-    free(pBuffer);
-    CloseHandle(hFile);
-
-    return 1;
+    return 0;
 }
 
 int main(void)
@@ -212,14 +157,14 @@ int main(void)
     int argc;
 
     // Verify DLL signature
-    const wchar_t* dll_path = L"C:\\Users\\Student\\source\\repos\\Project3\\Debug\\Project3.dll";
+    const wchar_t* dll_path = L"C:\\Users\\Student\\source\\repos\\Project2\\Debug\\Project2.dll";
     if (!verify_signature(dll_path))
     {
         fprintf(stderr, "DLL signature verification failed. Exiting.\n");
         return 1;
     }
 
-    dll = LoadLibraryA("C:\\Users\\Student\\source\\repos\\Project3\\Debug\\Project3.dll");
+    dll = LoadLibraryA("C:\\Users\\Student\\source\\repos\\Project2\\Debug\\Project2.dll");
     if (!dll) {
         fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
         return 1;
