@@ -6,7 +6,7 @@
 #define MAX_LINE 1024
 #define MAX_ARGS 16
 
-typedef int (__cdecl *ParseCommandFn)(char *, char *[], int);
+typedef int (__stdcall *ParseCommandFn)(char *, char *[], int);
 typedef int (__stdcall *ExecuteCommandFn)(const char *, const char *const [], int);
 
 typedef struct {
