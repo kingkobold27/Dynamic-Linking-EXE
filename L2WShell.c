@@ -83,7 +83,7 @@ static int dispatch(char *args[], int argc, ExecuteCommandFn execute)
         if (!GetConsoleScreenBufferInfo(h, &info)) return 1;
         cells = (DWORD)info.dwSize.X * (DWORD)info.dwSize.Y;
         if (!FillConsoleOutputCharacterA(h, ' ', cells, origin, &written)) return 1;
-        if (!FillConsoleOutputAttribute(h, info.dwAttributes, cells, origin, &written)) return 1;
+        if (!FillConsoleOutputAttribute(h, info.wAttributes, cells, origin, &written)) return 1;
         if (!SetConsoleCursorPosition(h, origin)) return 1;
         return 0;
     }
@@ -106,12 +106,13 @@ int main(void)
     char *args[MAX_ARGS];
     int argc;
 
-    dll = LoadLibraryA("L2WShell.dllx");
+    dll = LoadLibraryA("C:\\Users\\Student\\source\\repos\\Project2\\Debug\\Project2.dll");
     if (!dll) {
         fprintf(stderr, "Unable to load L2WShell.dll: %lu\n", GetLastError());
+        return 1;
     }
-    parse = (ParseCommandFn)GetProcAddress(dll, "ParseCmd");
-    execute = (ExecuteCommandFn)GetProcAddress(dll, "ExecuteCmd");
+    parse = (ParseCommandFn)GetProcAddress(dll, "_ParseCommand@12");
+    execute = (ExecuteCommandFn)GetProcAddress(dll, "_ExecuteCommand@12");
     if (!parse || !execute) {
         fprintf(stderr, "Missing required DLL export.\n");
         FreeLibrary(dll);
@@ -135,7 +136,6 @@ int main(void)
         if (dispatch(args, argc, execute) == -1)
             break;
     }
-    FreeLibrary(dll);
     FreeLibrary(dll);
     return 0;
 }
